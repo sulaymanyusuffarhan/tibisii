@@ -15,6 +15,7 @@
     "db:restore": "tsx scripts/db-restore.ts",
     "admin:init": "tsx scripts/admin-init.ts",
     "test:phase2": "tsx scripts/test-phase2.ts",
+    "test:phase3": "tsx scripts/test-phase3.ts",
     "test:all": "tsx scripts/run-tests.ts"
   },
   "dependencies": {

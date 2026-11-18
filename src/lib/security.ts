@@ -130,7 +130,7 @@ export function sanitizeRichHtml(input: string): string {
       if (attr.startsWith('on') || attr === 'style' || attr === 'srcdoc') continue;
 
       if (tag === 'a' && attr === 'href') {
-        if (/^(https?:\/\/|mailto:|tel:|\/|#)/i.test(val) && !/^javascript:/i.test(val)) {
+        if ((/^(https?:\/\/|mailto:|tel:|#)/i.test(val) || (/^\/(?!\/)/.test(val) && !val.includes('\\'))) && !/^javascript:/i.test(val)) {
           safeAttrs.push(`href="${escapeHtmlAttr(val)}"`);
           if (/^https?:\/\//i.test(val)) {
             safeAttrs.push('rel="noopener noreferrer"');
@@ -139,7 +139,7 @@ export function sanitizeRichHtml(input: string): string {
       } else if (tag === 'a' && attr === 'target' && val === '_blank') {
         safeAttrs.push('target="_blank"');
       } else if (tag === 'img' && attr === 'src') {
-        if (/^(https?:\/\/|\/)/i.test(val) && !/^javascript:/i.test(val)) {
+        if ((/^https:\/\//i.test(val) || (/^\/(?!\/)/.test(val) && !val.includes('\\'))) && !/^javascript:/i.test(val)) {
           safeAttrs.push(`src="${escapeHtmlAttr(val)}"`);
         }
       } else if (tag === 'img' && (attr === 'alt' || attr === 'title')) {

@@ -112,3 +112,16 @@ export async function ensureBootstrapRoleDefinitions() {
     );
   }
 }
+
+export async function resetUserMfa(userId: string, actorId: string) {
+  const db = await getDb();
+  const actor = await db.query<{ slug: string }>('SELECT r.slug FROM users u JOIN roles r ON r.id=u.role_id WHERE u.id=$1 AND u.is_active=TRUE', [actorId]);
+  if (actor.rows[0]?.slug !== 'super_admin') throw new Error('Only an active Super Administrator may reset another account’s MFA.');
+  const target = await db.query<{ email: string }>('SELECT email FROM users WHERE id=$1', [userId]);
+  if (!target.rows[0]) throw new Error('User not found.');
+  await db.transaction(async (tx) => {
+    await tx.query(`UPDATE users SET mfa_enabled=FALSE,mfa_secret=NULL,mfa_backup_codes='[]'::jsonb,mfa_failed_attempts=0,mfa_locked_until=NULL,updated_at=NOW() WHERE id=$1`, [userId]);
+    await tx.query('DELETE FROM sessions WHERE user_id=$1', [userId]);
+  });
+  await logAudit({ userId: actorId, action: 'users.mfa_reset', entityType: 'user', entityId: userId, summary: `Reset MFA enrollment for ${target.rows[0].email}; active sessions revoked.` });
+}

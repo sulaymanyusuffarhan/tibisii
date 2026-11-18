@@ -16,7 +16,11 @@ export async function POST(req: NextRequest) {
   if (!row.rows[0]?.mfa_secret || row.rows[0].mfa_enabled) return NextResponse.json({ error: 'Start MFA setup before confirming.' }, { status: 409 });
   if (!verifyTotpCode(decryptSecret(row.rows[0].mfa_secret), parsed.data.code)) return NextResponse.json({ error: 'That code is invalid or expired. Check your device time and try again.' }, { status: 400 });
   const backupCodes = generateBackupCodes();
-  await db.query('UPDATE users SET mfa_enabled=TRUE,mfa_backup_codes=$1::jsonb,updated_at=NOW() WHERE id=$2', [JSON.stringify(backupCodes.map((code) => sha256Hex(code))), auth.user.id]);
+  await db.transaction(async (tx) => {
+    await tx.query('UPDATE users SET mfa_enabled=TRUE,mfa_backup_codes=$1::jsonb,updated_at=NOW() WHERE id=$2', [JSON.stringify(backupCodes.map((code) => sha256Hex(code))), auth.user.id]);
+    // The enrollment code was just verified; retain the current authenticated session as MFA-verified.
+    await tx.query('UPDATE sessions SET mfa_verified=TRUE WHERE id=$1 AND user_id=$2', [auth.user.sessionId, auth.user.id]);
+  });
   await logAudit({ userId: auth.user.id, userEmail: auth.user.email, userRole: auth.user.roleSlug, action: 'auth.mfa_enabled', summary: 'MFA was enabled; recovery codes were generated.' });
   return NextResponse.json({ ok: true, backupCodes, warning: 'Save these recovery codes somewhere secure. They will not be shown again.' }, { headers: { 'Cache-Control': 'no-store' } });
 }

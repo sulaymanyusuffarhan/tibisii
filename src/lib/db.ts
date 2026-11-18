@@ -227,6 +227,9 @@ export async function promoteScheduledContent(adapter: DbAdapter): Promise<numbe
     const res = await adapter.query<{ id: string }>(
       `UPDATE ${tbl}
        SET workflow_status = 'published',
+           status_sw = 'published',
+           status_en = CASE WHEN COALESCE(title_en, '') <> '' THEN 'published' ELSE 'draft' END,
+           published_by = COALESCE(published_by, updated_by),
            published_at = COALESCE(scheduled_at, NOW()),
            updated_at = NOW()
        WHERE workflow_status = 'scheduled'
