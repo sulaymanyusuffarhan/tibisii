@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 92" role="img" aria-label="TBC — Shirika la Utangazaji Tanzania Official Wordmark Slot">
+  <title>TBC — Shirika la Utangazaji Tanzania</title>
+  <!-- Official TBC Wordmark Slot (replace with certified TBC master artwork via Admin -> Settings) -->
+  <rect x="4" y="6" width="202" height="80" rx="4" fill="#0B2D5C"/>
+  <!-- Official Tanzanian National Band Accent along bottom edge -->
+  <rect x="4" y="79" width="50.5" height="7" fill="#1EB53A"/>
+  <rect x="54.5" y="79" width="50.5" height="7" fill="#FCD116"/>
+  <rect x="105" y="79" width="50.5" height="7" fill="#0B121C"/>
+  <rect x="155.5" y="79" width="50.5" height="7" fill="#00A3DD"/>
+  <!-- TBC Official Initials Typography -->
+  <text x="105" y="51" text-anchor="middle" font-family="'Plus Jakarta Sans', 'Arial Black', Arial, sans-serif" font-size="44" font-weight="900" letter-spacing="4" fill="#FFFFFF">TBC</text>
+  <!-- Motto: UKWELI NA UHAKIKA -->
+  <line x1="28" y1="58" x2="182" y2="58" stroke="#FCD116" stroke-width="1.2" stroke-opacity="0.75"/>
+  <text x="105" y="71" text-anchor="middle" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="8.5" font-weight="700" letter-spacing="2.2" fill="#FCD116">UKWELI NA UHAKIKA</text>
+</svg>

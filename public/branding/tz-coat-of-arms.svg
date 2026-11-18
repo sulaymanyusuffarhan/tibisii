@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 132" role="img" aria-label="Nembo ya Taifa ya Jamhuri ya Muungano wa Tanzania — Official National Emblem Slot">
+  <title>Nembo ya Taifa — Jamhuri ya Muungano wa Tanzania</title>
+  <defs>
+    <clipPath id="tzShieldClip">
+      <path d="M60 22 C74 34 80 51 80 68 C80 86 73 101 60 112 C47 101 40 86 40 68 C40 51 46 34 60 22 Z"/>
+    </clipPath>
+  </defs>
+  <!-- Mount Kilimanjaro & Ocean Base -->
+  <path d="M18 114 Q60 98 102 114 L98 119 Q60 108 22 119 Z" fill="#5B4636"/>
+  <path d="M45 107 Q60 101 75 107" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Outer Elephant Tusk Framing Arcs (heraldic representation) -->
+  <path d="M34 108 C18 90 16 62 28 36 C30 32 34 34 32 39 C23 62 25 86 39 103 Z" fill="#F5EFE2" stroke="#8C6D2E" stroke-width="1.4"/>
+  <path d="M86 108 C102 90 104 62 92 36 C90 32 86 34 88 39 C97 62 95 86 81 103 Z" fill="#F5EFE2" stroke="#8C6D2E" stroke-width="1.4"/>
+  <!-- Central Spear behind shield -->
+  <line x1="60" y1="14" x2="60" y2="115" stroke="#8C6D2E" stroke-width="2.2"/>
+  <polygon points="60,8 56.5,17 60,15 63.5,17" fill="#C89412" stroke="#6E5219" stroke-width="0.8"/>
+  <!-- Four-division Tanzanian Warrior Shield -->
+  <g clip-path="url(#tzShieldClip)">
+    <!-- 1. Golden upper portion (mineral wealth) -->
+    <rect x="38" y="20" width="44" height="27" fill="#E5B21E"/>
+    <!-- 2. National Flag portion -->
+    <rect x="38" y="47" width="44" height="22" fill="#1EB53A"/>
+    <polygon points="38,69 82,47 82,69" fill="#00A3DD"/>
+    <line x1="36" y1="70" x2="84" y2="46" stroke="#FCD116" stroke-width="6.5"/>
+    <line x1="36" y1="70" x2="84" y2="46" stroke="#0B121C" stroke-width="4"/>
+    <!-- 3. Red portion (fertile African soil) -->
+    <rect x="38" y="69" width="44" height="21" fill="#C0272D"/>
+    <!-- 4. Wavy blue & white bands (land, sea, lakes, coastline) -->
+    <rect x="38" y="90" width="44" height="24" fill="#FFFFFF"/>
+    <path d="M38 95 Q49 92 60 95 T82 95" stroke="#0077BE" stroke-width="2.6" fill="none"/>
+    <path d="M38 101 Q49 98 60 101 T82 101" stroke="#0077BE" stroke-width="2.6" fill="none"/>
+    <path d="M38 107 Q49 104 60 107 T82 107" stroke="#0077BE" stroke-width="2.6" fill="none"/>
+  </g>
+  <!-- Shield Border -->
+  <path d="M60 22 C74 34 80 51 80 68 C80 86 73 101 60 112 C47 101 40 86 40 68 C40 51 46 34 60 22 Z" fill="none" stroke="#6E5219" stroke-width="2"/>
+  <!-- Uhuru Torch on golden shield section -->
+  <rect x="58" y="34" width="4" height="10" rx="1" fill="#6E5219"/>
+  <path d="M55 34 L65 34 L63 37 L57 37 Z" fill="#8C6D2E"/>
+  <path d="M60 25 C64 28 64 32 60 34 C56 32 56 28 60 25 Z" fill="#D9381E"/>
+  <path d="M60 27.5 C62 29.5 62 32 60 33.2 C58 32 58 29.5 60 27.5 Z" fill="#FCD116"/>
+  <!-- Crossed Hoe & Axe Emblem -->
+  <line x1="51" y1="86" x2="69" y2="73" stroke="#E5B21E" stroke-width="2" stroke-linecap="round"/>
+  <line x1="69" y1="86" x2="51" y2="73" stroke="#E5B21E" stroke-width="2" stroke-linecap="round"/>
+  <!-- Clove & Cotton Sprigs -->
+  <path d="M33 108 C31 99 34 92 38 89" stroke="#136F3A" stroke-width="2" fill="none"/>
+  <path d="M87 108 C89 99 86 92 82 89" stroke="#136F3A" stroke-width="2" fill="none"/>
+  <!-- National Motto Ribbon: UHURU NA UMOJA -->
+  <path d="M14 115 Q60 109 106 115 L103 127 Q60 121 17 127 Z" fill="#FCD116" stroke="#6E5219" stroke-width="1.3"/>
+  <text x="60" y="122.2" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="7.3" font-weight="700" letter-spacing="0.8" fill="#0E1726">UHURU NA UMOJA</text>
+</svg>

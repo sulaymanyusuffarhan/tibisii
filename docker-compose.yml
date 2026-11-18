@@ -1,0 +1,22 @@
+# PostgreSQL 16 service for TBC ICT local, staging, or containerized deployment
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tbc_corporate_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tbc_corporate}
+      POSTGRES_USER: ${POSTGRES_USER:-tbc_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - tbc_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tbc_app} -d ${POSTGRES_DB:-tbc_corporate}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  tbc_pgdata:
