@@ -5,15 +5,23 @@ import { getDb } from './db';
 import { hasPermission, type PermissionKey } from './permissions';
 import {
   createId,
+  decryptSecret,
   generateSecureToken,
   getClientIp,
   sha256Hex,
+  validateSessionSecret,
   verifyTotpCode,
 } from './security';
 import { logAudit } from './audit';
 
 export const SESSION_COOKIE_NAME = 'tbc_cms_session';
 export const LANG_COOKIE_NAME = 'tbc_lang';
+
+let dummyPasswordHashPromise: Promise<string> | undefined;
+async function getDummyPasswordHash(): Promise<string> {
+  dummyPasswordHashPromise ??= bcrypt.hash('TBC invalid account timing sentinel', 12);
+  return dummyPasswordHashPromise;
+}
 
 export interface AuthenticatedUser {
   id: string;
@@ -48,10 +56,12 @@ export async function shouldUseSecureCookie(req?: NextRequest | Request): Promis
     ? req.headers.get('x-forwarded-proto')
     : (await headers()).get('x-forwarded-proto');
   if (proto && proto.split(',')[0].trim() === 'https') return true;
-  return process.env.NODE_ENV === 'production' && Boolean(proto?.includes('https'));
+  // Production deployments must be HTTPS; fail safely when a proxy omits its forwarded-proto header.
+  return process.env.NODE_ENV === 'production';
 }
 
 export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
+  validateSessionSecret();
   const cookieStore = await cookies();
   const rawToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!rawToken || rawToken.length < 32) return null;
@@ -216,6 +226,7 @@ export async function authenticateUserCredentials(params: {
     }
   | { ok: false; status: number; error: string; mfaRequired?: boolean }
 > {
+  validateSessionSecret();
   const db = await getDb();
   const normalizedEmail = params.email.trim().toLowerCase();
   const maxAttempts = Number(process.env.MAX_LOGIN_ATTEMPTS) || 5;
@@ -232,11 +243,13 @@ export async function authenticateUserCredentials(params: {
     mfa_backup_codes: string[];
     failed_login_attempts: number;
     locked_until: string | null;
+    mfa_failed_attempts: number;
+    mfa_locked_until: string | null;
     role_slug: string;
   }>(
     `SELECT u.id, u.email, u.full_name, u.password_hash, u.is_active,
             u.mfa_enabled, u.mfa_secret, u.mfa_backup_codes,
-            u.failed_login_attempts, u.locked_until, r.slug AS role_slug
+            u.failed_login_attempts, u.locked_until, u.mfa_failed_attempts, u.mfa_locked_until, r.slug AS role_slug
      FROM users u
      JOIN roles r ON r.id = u.role_id
      WHERE LOWER(u.email) = $1
@@ -246,7 +259,7 @@ export async function authenticateUserCredentials(params: {
 
   if (res.rows.length === 0) {
     // Constant-time dummy compare to mitigate timing enumeration
-    await bcrypt.compare(params.password, '$2a$12$CwTycUXWue0Thq9StjUM0uJ8p1Y5f4Y4z5k7l8m9n0o1p2q3r4s5t');
+    await bcrypt.compare(params.password, await getDummyPasswordHash());
     await logAudit({
       userEmail: normalizedEmail,
       action: 'auth.login_failed',
@@ -290,16 +303,20 @@ export async function authenticateUserCredentials(params: {
 
   const passwordValid = await verifyPassword(params.password, user.password_hash);
   if (!passwordValid) {
-    const attempts = Number(user.failed_login_attempts || 0) + 1;
-    const lockUntil =
-      attempts >= maxAttempts
-        ? new Date(Date.now() + lockoutMinutes * 60_000).toISOString()
-        : null;
-
-    await db.query(
-      `UPDATE users SET failed_login_attempts = $1, locked_until = $2, updated_at = NOW() WHERE id = $3`,
-      [attempts, lockUntil, user.id]
+    const failure = await db.query<{ attempts: number; locked_until: string | null }>(
+      `UPDATE users
+       SET failed_login_attempts = failed_login_attempts + 1,
+           locked_until = CASE
+             WHEN failed_login_attempts + 1 >= $1 THEN NOW() + ($2::text || ' minutes')::interval
+             ELSE NULL
+           END,
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING failed_login_attempts AS attempts, locked_until`,
+      [maxAttempts, lockoutMinutes, user.id]
     );
+    const attempts = Number(failure.rows[0]?.attempts ?? maxAttempts);
+    const lockUntil = failure.rows[0]?.locked_until ?? null;
 
     await logAudit({
       userId: user.id,
@@ -317,6 +334,10 @@ export async function authenticateUserCredentials(params: {
   }
 
   // Optional Multi-Factor Authentication verification
+  if (user.mfa_enabled && user.mfa_secret && user.mfa_locked_until && new Date(user.mfa_locked_until) > new Date()) {
+    const minsLeft = Math.max(1, Math.ceil((new Date(user.mfa_locked_until).getTime() - Date.now()) / 60_000));
+    return { ok: false, status: 429, error: `MFA temporarily locked after repeated invalid codes. Try again in ${minsLeft} minute(s).`, mfaRequired: true };
+  }
   if (user.mfa_enabled && user.mfa_secret) {
     if (!params.mfaCode?.trim()) {
       return {
@@ -328,37 +349,45 @@ export async function authenticateUserCredentials(params: {
     }
 
     const code = params.mfaCode.trim();
-    const totpOk = verifyTotpCode(user.mfa_secret, code);
+    const totpOk = verifyTotpCode(decryptSecret(user.mfa_secret), code);
     let backupUsed = false;
 
     if (!totpOk) {
       const codeHash = sha256Hex(code.toUpperCase());
-      const backups = Array.isArray(user.mfa_backup_codes) ? user.mfa_backup_codes : [];
-      const idx = backups.indexOf(codeHash);
-      if (idx !== -1) {
-        backupUsed = true;
+      backupUsed = await db.transaction(async (tx) => {
+        const current = await tx.query<{ mfa_backup_codes: string[] }>(
+          'SELECT mfa_backup_codes FROM users WHERE id=$1 FOR UPDATE', [user.id]
+        );
+        const backups = Array.isArray(current.rows[0]?.mfa_backup_codes) ? current.rows[0].mfa_backup_codes : [];
+        const idx = backups.indexOf(codeHash);
+        if (idx === -1) return false;
         const remaining = backups.filter((_, i) => i !== idx);
-        await db.query('UPDATE users SET mfa_backup_codes = $1::jsonb WHERE id = $2', [
-          JSON.stringify(remaining),
-          user.id,
-        ]);
-      }
+        await tx.query('UPDATE users SET mfa_backup_codes=$1::jsonb WHERE id=$2', [JSON.stringify(remaining), user.id]);
+        return true;
+      });
     }
 
     if (!totpOk && !backupUsed) {
+      const failure = await db.query<{ attempts: number }>(
+        `UPDATE users SET mfa_failed_attempts=mfa_failed_attempts+1,
+         mfa_locked_until=CASE WHEN mfa_failed_attempts+1 >= $1 THEN NOW()+($2::text || ' minutes')::interval ELSE NULL END,
+         updated_at=NOW() WHERE id=$3 RETURNING mfa_failed_attempts AS attempts`,
+        [maxAttempts, lockoutMinutes, user.id]
+      );
+      const attempts = Number(failure.rows[0]?.attempts ?? 0);
       await logAudit({
         userId: user.id,
         userEmail: user.email,
         userRole: user.role_slug,
-        action: 'auth.mfa_failed',
-        summary: `Invalid MFA verification code supplied for ${user.email}`,
+        action: attempts >= maxAttempts ? 'auth.mfa_locked' : 'auth.mfa_failed',
+        summary: `Invalid MFA verification code supplied for ${user.email} (${attempts}/${maxAttempts})`,
         ipAddress: params.ip,
         userAgent: params.userAgent,
       });
       return {
         ok: false,
-        status: 401,
-        error: 'Invalid multi-factor authentication code.',
+        status: attempts >= maxAttempts ? 429 : 401,
+        error: attempts >= maxAttempts ? 'MFA temporarily locked after repeated invalid codes.' : 'Invalid multi-factor authentication code.',
         mfaRequired: true,
       };
     }
@@ -390,7 +419,7 @@ export async function authenticateUserCredentials(params: {
 
   await db.query(
     `UPDATE users
-     SET failed_login_attempts = 0, locked_until = NULL, last_login_at = NOW(), last_login_ip = $1, updated_at = NOW()
+     SET failed_login_attempts = 0, locked_until = NULL, mfa_failed_attempts = 0, mfa_locked_until = NULL, last_login_at = NOW(), last_login_ip = $1, updated_at = NOW()
      WHERE id = $2`,
     [params.ip, user.id]
   );
@@ -417,4 +446,72 @@ export async function authenticateUserCredentials(params: {
       roleSlug: user.role_slug,
     },
   };
+}
+
+/** Revoke the current server-side session. */
+export async function revokeSession(rawToken: string | undefined): Promise<void> {
+  if (!rawToken || rawToken.length < 32) return;
+  const db = await getDb();
+  const result = await db.query<{ user_id: string }>(
+    'DELETE FROM sessions WHERE token_hash = $1 RETURNING user_id',
+    [sha256Hex(rawToken)]
+  );
+  if (result.rows[0]) {
+    const user = await db.query<{ email: string; role_slug: string }>(
+      'SELECT u.email, r.slug AS role_slug FROM users u JOIN roles r ON r.id=u.role_id WHERE u.id=$1',
+      [result.rows[0].user_id]
+    );
+    await logAudit({ userId: result.rows[0].user_id, userEmail: user.rows[0]?.email, userRole: user.rows[0]?.role_slug, action: 'auth.logout', summary: 'Administrator signed out.' });
+  }
+}
+
+/** Always returns a generic response to avoid disclosing whether an account exists. */
+export async function requestPasswordReset(email: string, ip: string): Promise<void> {
+  const { sendSystemEmail } = await import('./email');
+  const db = await getDb();
+  const normalized = email.trim().toLowerCase();
+  const found = await db.query<{ id: string; email: string; full_name: string; is_active: boolean }>(
+    'SELECT id,email,full_name,is_active FROM users WHERE LOWER(email)=$1 LIMIT 1', [normalized]
+  );
+  if (!found.rows[0]?.is_active) return;
+
+  const rawToken = generateSecureToken(32);
+  const expiresAt = new Date(Date.now() + 30 * 60_000);
+  await db.query('UPDATE password_reset_tokens SET used_at=NOW() WHERE user_id=$1 AND used_at IS NULL', [found.rows[0].id]);
+  await db.query(
+    `INSERT INTO password_reset_tokens (id,user_id,token_hash,expires_at,requested_ip)
+     VALUES ($1,$2,$3,$4,$5)`,
+    [createId('rst'), found.rows[0].id, sha256Hex(rawToken), expiresAt.toISOString(), ip.slice(0,64)]
+  );
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const resetUrl = `${baseUrl}/admin/reset-password?token=${encodeURIComponent(rawToken)}`;
+  const delivery = await sendSystemEmail({
+    to: found.rows[0].email,
+    subject: 'TBC Corporate CMS password reset',
+    text: `Hello ${found.rows[0].full_name},\n\nUse this one-time link to reset your password. It expires in 30 minutes:\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`,
+  });
+  await logAudit({ userId: found.rows[0].id, userEmail: found.rows[0].email, action: 'auth.password_reset_requested', summary: `Password reset requested; mail status: ${delivery.status}`, ipAddress: ip });
+}
+
+export async function resetPassword(rawToken: string, newPassword: string): Promise<boolean> {
+  if (newPassword.length < 12 || newPassword.length > 128) throw new Error('Password must be between 12 and 128 characters.');
+  const db = await getDb();
+  const tokenHash = sha256Hex(rawToken);
+  const passwordHash = await hashPassword(newPassword);
+  const user = await db.transaction(async (tx) => {
+    const token = await tx.query<{ id: string; user_id: string; email: string }>(
+      `SELECT pr.id,pr.user_id,u.email FROM password_reset_tokens pr
+       JOIN users u ON u.id=pr.user_id
+       WHERE pr.token_hash=$1 AND pr.used_at IS NULL AND pr.expires_at>NOW() AND u.is_active=TRUE
+       FOR UPDATE`, [tokenHash]
+    );
+    if (!token.rows[0]) return null;
+    await tx.query('UPDATE password_reset_tokens SET used_at=NOW() WHERE id=$1', [token.rows[0].id]);
+    await tx.query('UPDATE users SET password_hash=$1,password_changed_at=NOW(),failed_login_attempts=0,locked_until=NULL,mfa_failed_attempts=0,mfa_locked_until=NULL,updated_at=NOW() WHERE id=$2', [passwordHash, token.rows[0].user_id]);
+    await tx.query('DELETE FROM sessions WHERE user_id=$1', [token.rows[0].user_id]);
+    return token.rows[0];
+  });
+  if (!user) return false;
+  await logAudit({ userId: user.user_id, userEmail: user.email, action: 'auth.password_reset_completed', summary: 'Password changed through a single-use reset link.' });
+  return true;
 }
