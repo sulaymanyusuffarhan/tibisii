@@ -19,12 +19,15 @@ export async function GET(req: NextRequest) {
   const auth = await requireApiAuth(req, 'users.manage');
   if ('response' in auth) return auth.response;
   const db = await getDb();
-  const result = await db.query(
-    `SELECT u.id,u.email,u.full_name,u.job_title,u.department,u.phone,u.is_active,u.mfa_enabled,
-            u.delegated_publish,u.last_login_at,u.created_at,r.slug AS role_slug,r.name_sw AS role_name_sw,r.name_en AS role_name_en
-     FROM users u JOIN roles r ON r.id=u.role_id ORDER BY u.created_at DESC LIMIT 500`
-  );
-  return NextResponse.json({ users: result.rows }, { headers: { 'Cache-Control': 'no-store' } });
+  const [result, roles] = await Promise.all([
+    db.query(
+      `SELECT u.id,u.email,u.full_name,u.job_title,u.department,u.phone,u.is_active,u.mfa_enabled,
+              u.delegated_publish,u.last_login_at,u.created_at,r.slug AS role_slug,r.name_sw AS role_name_sw,r.name_en AS role_name_en
+       FROM users u JOIN roles r ON r.id=u.role_id ORDER BY u.created_at DESC LIMIT 500`
+    ),
+    db.query('SELECT slug,name_sw,name_en FROM roles ORDER BY slug'),
+  ]);
+  return NextResponse.json({ users: result.rows, roles: roles.rows }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function POST(req: NextRequest) {

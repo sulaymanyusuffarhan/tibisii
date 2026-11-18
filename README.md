@@ -1,6 +1,6 @@
 # TBC Corporate Communication Portal
 
-The project is being delivered in phases. See [Phase 2 database and authentication setup](docs/phase-2-database-auth.md) for the database, administrator bootstrap, RBAC, MFA, password reset and verification procedures currently implemented.
+The project is being delivered in phases. See the [Phase 2 database and authentication guide](docs/phase-2-database-auth.md) and [Phase 3 administration dashboard and CMS guide](docs/phase-3-cms.md) for current setup, workflow, account and verification instructions.
 
 Quick local foundation checks:
 
@@ -9,6 +9,7 @@ npm ci
 npm run db:migrate
 npm run db:seed
 npm run test:phase2
+npm run test:phase3
 npm run lint
 ```
 
