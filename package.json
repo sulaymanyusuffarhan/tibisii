@@ -14,6 +14,7 @@
     "db:backup": "tsx scripts/db-backup.ts",
     "db:restore": "tsx scripts/db-restore.ts",
     "admin:init": "tsx scripts/admin-init.ts",
+    "test:phase2": "tsx scripts/test-phase2.ts",
     "test:all": "tsx scripts/run-tests.ts"
   },
   "dependencies": {
@@ -23,24 +24,27 @@
     "@fontsource/source-serif-4": "^5.1.0",
     "bcryptjs": "^2.4.3",
     "lucide-react": "^0.469.0",
-    "next": "^15.2.4",
-    "nodemailer": "^6.10.0",
+    "next": "^15.5.29",
+    "nodemailer": "^10.6.0",
     "pg": "^8.13.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zod": "^3.24.2"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.14",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.13.10",
-    "@types/nodemailer": "^6.4.17",
+    "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.11.11",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
-    "postcss": "^8.5.3",
+    "postcss": "^8.5.33",
     "tailwindcss": "^4.0.14",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
+  },
+  "overrides": {
+    "postcss": "^8.5.33"
   }
 }

@@ -18,6 +18,37 @@ export function sha256Hex(value: string): string {
   return crypto.createHash('sha256').update(value).digest('hex');
 }
 
+export function validateSessionSecret(): void {
+  const secret = process.env.SESSION_SECRET?.trim();
+  if (process.env.NODE_ENV === 'production' && (!secret || secret.length < 32 || secret.startsWith('REPLACE_WITH'))) {
+    throw new Error('SESSION_SECRET must be a unique, cryptographically random secret of at least 32 characters.');
+  }
+}
+
+function secretEncryptionKey(): Buffer {
+  validateSessionSecret();
+  const secret = process.env.SESSION_SECRET?.trim();
+  if (!secret || secret.length < 32 || secret.startsWith('REPLACE_WITH')) {
+    return crypto.createHash('sha256').update('TBC local-only MFA encryption key — never deploy').digest();
+  }
+  return crypto.createHash('sha256').update(secret).digest();
+}
+
+export function encryptSecret(plain: string): string {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', secretEncryptionKey(), iv);
+  const ciphertext = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
+  return `enc:v1:${iv.toString('base64url')}:${cipher.getAuthTag().toString('base64url')}:${ciphertext.toString('base64url')}`;
+}
+
+export function decryptSecret(value: string): string {
+  if (!value.startsWith('enc:v1:')) throw new Error('Stored MFA secret is not encrypted. An administrator must reset MFA enrollment.');
+  const [, , ivText, tagText, ciphertextText] = value.split(':');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', secretEncryptionKey(), Buffer.from(ivText, 'base64url'));
+  decipher.setAuthTag(Buffer.from(tagText, 'base64url'));
+  return Buffer.concat([decipher.update(Buffer.from(ciphertextText, 'base64url')), decipher.final()]).toString('utf8');
+}
+
 export function generateReferenceNumber(prefix = 'TBC-ENQ'): string {
   const d = new Date();
   const ymd = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(
