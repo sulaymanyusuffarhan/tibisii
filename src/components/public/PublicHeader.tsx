@@ -3,6 +3,7 @@ import { ChevronDown, ExternalLink, Search } from 'lucide-react';
 import type { MenuItemNode, SiteSettingsMap } from '@/lib/settings';
 import type { Lang } from '@/lib/i18n';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { TanzaniaClock } from './TanzaniaClock';
 
 function localizedHref(url:string,lang:Lang){if(/^https?:\/\//i.test(url)||url.startsWith('mailto:')||url.startsWith('tel:'))return url;const clean=url.startsWith('/')?url:`/${url}`;return `/${lang}${clean==='/'?'':clean}`}
 function MenuBranch({item,lang}:{item:MenuItemNode;lang:Lang}){
@@ -18,12 +19,12 @@ export function PublicHeader({lang,settings,menus}:{lang:Lang;settings:SiteSetti
  const emblem=settings.branding.national_emblem_url||'/branding/tanzania-emblem.png';
  const logo=settings.branding.institutional_logo_url||'/branding/tbc-logo.webp';
  return <>
-  <div className="gov-strip"><div className="public-container gov-inner"><span>{lang==='sw'?settings.general.government_header_sw:settings.general.government_header_en}</span><div className="gov-links">{utility.map(item=><Link key={item.id} href={localizedHref(item.url,lang)}>{lang==='sw'?item.label_sw:item.label_en}</Link>)}<a href={settings.general.main_broadcast_url} target="_blank" rel="noopener noreferrer">{lang==='sw'?'Tovuti kuu ya TBC':'Main TBC website'} <ExternalLink size={10}/></a></div></div></div>
+  <div className="gov-strip"><div className="public-container gov-inner"><TanzaniaClock lang={lang}/><div className="gov-tools"><div className="gov-links">{utility.map(item=><Link key={item.id} href={localizedHref(item.url,lang)}>{lang==='sw'?item.label_sw:item.label_en}</Link>)}<a href={settings.general.main_broadcast_url} target="_blank" rel="noopener noreferrer">{lang==='sw'?'Tovuti kuu ya TBC':'Main TBC website'} <ExternalLink size={10}/></a></div><LanguageSwitcher lang={lang}/></div></div></div>
   <header className="public-header">
    <div className="public-container masthead">
     <div className="mast-emblem"><img src={emblem} alt={lang==='sw'?'Nembo ya Taifa la Tanzania':'National Emblem of Tanzania'}/></div>
-    <Link href={`/${lang}`} className="mast-brand"><strong>{lang==='sw'?settings.general.institution_name_sw:settings.general.institution_name_en}</strong><small>{lang==='sw'?'MAWASILIANO YA SHIRIKA':'CORPORATE COMMUNICATIONS'}</small></Link>
-    <div className="mast-actions"><LanguageSwitcher lang={lang}/><img className="mast-logo" src={logo} alt={lang==='sw'?'Nembo rasmi ya TBC':'Official TBC logo'}/></div>
+    <Link href={`/${lang}`} className="mast-brand"><small>{lang==='sw'?settings.general.government_header_sw:settings.general.government_header_en}</small><strong>{lang==='sw'?settings.general.institution_name_sw:settings.general.institution_name_en}</strong></Link>
+    <div className="mast-actions"><img className="mast-logo" src={logo} alt={lang==='sw'?'Nembo rasmi ya TBC':'Official TBC logo'}/></div>
    </div>
    <div className="nav-band"><div className="public-container nav-wrap"><nav className="primary-nav" aria-label={lang==='sw'?'Menyu kuu':'Main navigation'}><ul>{main.map(item=><MenuBranch item={item} lang={lang} key={item.id}/>)}</ul></nav><form className="public-search" action={`/${lang}/search`} method="get"><label className="sr-only" htmlFor="site-search">{lang==='sw'?'Tafuta tovuti':'Search website'}</label><Search size={15}/><input id="site-search" name="q" placeholder={lang==='sw'?'Tafuta…':'Search…'} maxLength={100}/><button type="submit" aria-label={lang==='sw'?'Tafuta':'Search'}><Search size={13}/></button></form><details className="mobile-nav"><summary><span className="hamburger"><i/><i/><i/></span><span>{lang==='sw'?'Menyu':'Menu'}</span></summary><div className="mobile-menu-panel"><form action={`/${lang}/search`} method="get"><input name="q" placeholder={lang==='sw'?'Tafuta tovuti':'Search website'}/><button><Search size={14}/></button></form><ul>{main.map(item=><MenuBranch item={item} lang={lang} key={item.id}/>)}</ul><div className="mobile-utility">{utility.map(item=><Link key={item.id} href={localizedHref(item.url,lang)}>{lang==='sw'?item.label_sw:item.label_en}</Link>)}</div></div></details></div></div>
   </header>
