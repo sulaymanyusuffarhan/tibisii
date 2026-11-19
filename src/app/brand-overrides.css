@@ -86,13 +86,14 @@
 }
 
 .float-smooth {
-  position: absolute;
-  z-index: 3;
-  right: clamp(22px, 7vw, 105px);
-  bottom: 78px;
+  position: fixed;
+  z-index: 35;
+  right: clamp(16px, 3vw, 32px);
+  bottom: 18px;
   width: clamp(88px, 12vw, 150px);
   height: auto;
   object-fit: contain;
+  pointer-events: none;
   animation: dira-float 5s ease-in-out infinite;
 }
 
@@ -142,8 +143,8 @@
   }
 
   .float-smooth {
-    right: 22px;
-    bottom: 62px;
+    right: 18px;
+    bottom: 16px;
     width: 92px;
   }
 }
@@ -173,8 +174,8 @@
   }
 
   .float-smooth {
-    right: 15px;
-    bottom: 55px;
+    right: 12px;
+    bottom: 12px;
     width: 74px;
   }
 }
