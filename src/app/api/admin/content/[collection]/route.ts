@@ -102,15 +102,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ collec
   try {
     if (collection === 'articles') {
       await db.query(
-        `INSERT INTO articles (id,slug,module,content_format,category_slug,title_sw,title_en,excerpt_sw,excerpt_en,body_sw,body_en,workflow_status,status_sw,status_en,created_by,updated_by,is_featured)
-         VALUES ($1,$2,$3,'article',$4,$5,$6,$7,$8,$9,$10,'draft','draft','draft',$11,$11,$12)`,
-        [id,input.slug,input.module || 'announcement',input.categorySlug || 'general',input.titleSw,input.titleEn || '',input.summarySw || '',input.summaryEn || '',input.bodySw,input.bodyEn,auth.user.id,Boolean(input.isFeatured)]
+        `INSERT INTO articles (id,slug,module,content_format,category_slug,title_sw,title_en,excerpt_sw,excerpt_en,body_sw,body_en,featured_image_url,workflow_status,status_sw,status_en,created_by,updated_by,is_featured)
+         VALUES ($1,$2,$3,'article',$4,$5,$6,$7,$8,$9,$10,$11,'draft','draft','draft',$12,$12,$13)`,
+        [id,input.slug,input.module || 'announcement',input.categorySlug || 'general',input.titleSw,input.titleEn || '',input.summarySw || '',input.summaryEn || '',input.bodySw,input.bodyEn,input.featuredImageUrl||'',auth.user.id,Boolean(input.isFeatured)]
       );
     } else if (collection === 'pages') {
       await db.query(
-        `INSERT INTO pages (id,slug,section_group,title_sw,title_en,summary_sw,summary_en,body_sw,body_en,workflow_status,status_sw,status_en,created_by,updated_by)
-         VALUES ($1,$2,'custom',$3,$4,$5,$6,$7,$8,'draft','draft','draft',$9,$9)`,
-        [id,input.slug,input.titleSw,input.titleEn || '',input.summarySw || '',input.summaryEn || '',input.bodySw,input.bodyEn,auth.user.id]
+        `INSERT INTO pages (id,slug,section_group,title_sw,title_en,summary_sw,summary_en,body_sw,body_en,hero_image_url,workflow_status,status_sw,status_en,created_by,updated_by)
+         VALUES ($1,$2,'custom',$3,$4,$5,$6,$7,$8,$9,'draft','draft','draft',$10,$10)`,
+        [id,input.slug,input.titleSw,input.titleEn || '',input.summarySw || '',input.summaryEn || '',input.bodySw,input.bodyEn,input.featuredImageUrl||'',auth.user.id]
       );
     } else if (collection === 'events') {
       const startDate = parseDate(input.startDate, new Date());

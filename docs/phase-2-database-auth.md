@@ -7,7 +7,7 @@ Phase 2 establishes the persistence and identity foundation. It does **not** cla
 - PostgreSQL 15+ is the target deployment database. Configure `DATABASE_URL` and optionally `DATABASE_SSL=true` for an authorized PostgreSQL service.
 - `pglite://./storage/pgdata` is the default durable local-development database. `pglite://memory://` is used only for tests.
 - SQL migrations are ordered files in `db/migrations/`; `schema_migrations` tracks applied files. Migration application is transactional.
-- Migration `001_initial_schema.sql` defines the initial relational CMS schema. Migration `002_auth_hardening.sql` adds case-insensitive unique email enforcement, authentication indexes and database checks. Migration `003_mfa_attempt_controls.sql` adds separate MFA lockout counters and controls.
+- Migration `001_initial_schema.sql` defines the initial relational CMS schema. Migration `002_auth_hardening.sql` adds case-insensitive unique email enforcement, authentication indexes and database checks. Migration `003_mfa_attempt_controls.sql` adds separate MFA lockout counters and controls. Later Phase 5/6 changes are isolated in `004_public_forms_media_bilingual.sql`.
 - `npm run db:migrate` applies migrations. `npm run db:seed` idempotently seeds seven baseline roles, replaceable site settings, and starter taxonomy. It **does not create an account**.
 - `AUTO_INIT_DB=true` (local default) applies migrations/seeds at application initialization. Use explicit deployment migrations and `AUTO_INIT_DB=false` in controlled environments.
 

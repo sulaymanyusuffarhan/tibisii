@@ -18,7 +18,7 @@ async function main() {
   const db = await getDb();
   try {
     assert.equal(db.driver, 'pglite');
-    assert.equal((await runMigrations(db)).length, 3);
+    assert.equal((await runMigrations(db)).length, 4);
     await seedDatabase(db);
     assert.equal((await runMigrations(db)).length, 0, 'migrations are idempotently tracked');
     assert.equal(DEFAULT_ROLES.length, 7);

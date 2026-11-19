@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Archive, BookOpen, CalendarDays, FileText, KeyRound, LayoutDashboard, LogOut, Menu, ShieldCheck, Users, X } from 'lucide-react';
+import { Archive, BookOpen, CalendarDays, FileText, Images, Inbox, KeyRound, LayoutDashboard, LogOut, Menu, ShieldCheck, Users, X } from 'lucide-react';
 
 type SessionUser = { id: string; email: string; fullName: string; jobTitle: string; roleSlug: string; roleNameSw: string; roleNameEn: string; permissions: string[] };
 const links = [
@@ -12,6 +12,8 @@ const links = [
   { href: '/admin/content/pages', label: 'Institutional pages', sw: 'Kurasa za taasisi', icon: BookOpen, permission: 'pages.view', section: 'Editorial' },
   { href: '/admin/content/events', label: 'Events', sw: 'Matukio', icon: CalendarDays, permission: 'events.view', section: 'Editorial' },
   { href: '/admin/content/publications', label: 'Publications', sw: 'Machapisho', icon: Archive, permission: 'publications.view', section: 'Editorial' },
+  { href: '/admin/media', label: 'Media library', sw: 'Maktaba ya midia', icon: Images, permission: 'media.view', section: 'Operations' },
+  { href: '/admin/enquiries', label: 'Public enquiries', sw: 'Maombi ya umma', icon: Inbox, permission: 'enquiries.view', section: 'Operations' },
   { href: '/admin/users', label: 'User accounts', sw: 'Watumiaji', icon: Users, permission: 'users.manage', section: 'Administration' },
   { href: '/admin/roles', label: 'Roles & permissions', sw: 'Majukumu na ruhusa', icon: ShieldCheck, permission: 'roles.manage', section: 'Administration' },
   { href: '/admin/security', label: 'Account security', sw: 'Usalama wa akaunti', icon: KeyRound, permission: 'account.security', section: 'Administration' },

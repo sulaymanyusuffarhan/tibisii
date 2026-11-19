@@ -106,8 +106,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsMap = {
     show_demo_banner: true,
   },
   branding: {
-    national_emblem_url: '/branding/tz-coat-of-arms.svg',
-    institutional_logo_url: '/branding/tbc-logo.svg',
+    national_emblem_url: '/branding/tanzania-emblem.png',
+    institutional_logo_url: '/branding/tbc-logo.webp',
     verified: false,
     emblem_placement: 'left_right',
     branding_notice_sw:

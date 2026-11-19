@@ -1,0 +1,8 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
+import { isPublicFormType,PUBLIC_FORM_TYPES } from '@/lib/public-forms';
+import { FormSubmissionPanel } from '@/components/public/FormSubmissionPanel';
+import { Breadcrumbs,PageHeading } from '@/components/public/PublicKit';
+import type { Lang } from '@/lib/i18n';
+export default async function PublicFormPage({params}:{params:Promise<{lang:string;formType:string}>}){const{lang:raw,formType}=await params;if(raw!=='sw'&&raw!=='en')notFound();if(!isPublicFormType(formType))notFound();const lang=raw as Lang;const config=PUBLIC_FORM_TYPES[formType];const title=lang==='en'?config.en:config.sw;return <><Breadcrumbs lang={lang} items={[{label:lang==='en'?'Online forms':'Fomu za mtandaoni',href:`/${lang}/forms`},{label:title}]}/><PageHeading lang={lang} eyebrow={lang==='en'?'PUBLIC ENQUIRY':'MAOMBI YA UMMA'} title={title} summary={lang==='en'?config.introEn:config.introSw}/><section className="public-container content-section"><div className="public-form-layout"><div className="form-context"><Link className="text-link" href={`/${lang}/forms`}><ArrowLeft size={14}/>{lang==='en'?'All forms':'Fomu zote'}</Link><div className="form-reference-note"><strong>{lang==='en'?'Before you submit':'Kabla ya kutuma'}</strong><p>{lang==='en'?'Do not send identity numbers, passwords, financial information or other sensitive personal data. The form has no attachment field.':'Usitume namba za utambulisho, nywila, taarifa za fedha au taarifa nyingine nyeti. Fomu hii haina sehemu ya kuambatisha faili.'}</p></div></div><FormSubmissionPanel lang={lang} type={formType}/></div></section></>}
