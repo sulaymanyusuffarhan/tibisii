@@ -21,6 +21,7 @@ export interface SiteSettingsMap {
   branding: {
     national_emblem_url: string;
     institutional_logo_url: string;
+    verified: boolean;
     emblem_placement: 'left_right' | 'top_centered' | 'emblem_left_only';
     branding_notice_sw: string;
     branding_notice_en: string;
@@ -40,6 +41,7 @@ export interface SiteSettingsMap {
     working_hours_sw: string;
     working_hours_en: string;
     is_placeholder: boolean;
+    verified: boolean;
     emrejesho_url: string;
     emrejesho_enabled: boolean;
   };
@@ -106,6 +108,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsMap = {
   branding: {
     national_emblem_url: '/branding/tz-coat-of-arms.svg',
     institutional_logo_url: '/branding/tbc-logo.svg',
+    verified: false,
     emblem_placement: 'left_right',
     branding_notice_sw:
       'Pakia faili rasmi zilizoidhinishwa za Nembo ya Taifa na Nembo ya TBC kabla ya uzinduzi rasmi.',
@@ -127,8 +130,9 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsMap = {
     working_hours_sw: 'Jumatatu – Ijumaa: Saa 1:30 Asubuhi – Saa 9:30 Alasiri (EAT)',
     working_hours_en: 'Monday – Friday: 07:30 – 15:30 (East Africa Time)',
     is_placeholder: true,
+    verified: false,
     emrejesho_url: process.env.EMREJESHO_PORTAL_URL || 'https://emrejesho.gov.go.tz/',
-    emrejesho_enabled: process.env.EMREJESHO_LINK_ENABLED !== 'false',
+    emrejesho_enabled: process.env.EMREJESHO_LINK_ENABLED === 'true',
   },
   social: {
     youtube: '',
