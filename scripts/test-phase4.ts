@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { closeDb, getDb, runMigrations } from '../src/lib/db';
 import { seedDatabase } from '../src/lib/seed-data';
-import { getPublicShellData, getHomepageSections, getPublicArticles, getPublicArticle, getPublicEvents, getPublicEvent, getPublicPage, getPublications, getBroadcastChannels, getBroadcastSchedule, getLeadership, getPersonnel, getRegionalOffices, getFaqs, getApprovedTestimonials, searchPublicContent } from '../src/lib/public-site';
 
 async function main(){
+ const originalNodeEnv=process.env.NODE_ENV;Reflect.set(process.env,'NODE_ENV','production');
  process.env.DATABASE_URL='pglite://memory://';process.env.AUTO_INIT_DB='false';
+ const {getPublicShellData,getHomepageSections,getPublicArticles,getPublicArticle,getPublicEvents,getPublicEvent,getPublicPage,getPublications,getBroadcastChannels,getBroadcastSchedule,getLeadership,getPersonnel,getRegionalOffices,getFaqs,getApprovedTestimonials,searchPublicContent}=await import('../src/lib/public-site');
  const db=await getDb();
  try{
   await runMigrations(db);await seedDatabase(db);
@@ -26,6 +27,6 @@ async function main(){
   assert.equal((await getPublicArticles('sw')).some(item=>item.slug==='test-demo-story'),false,'production public listings exclude demonstration content');
   assert.equal((await searchPublicContent('demonstration','en')).some(item=>item.slug==='test-demo-story'),false,'production search excludes demonstration content');
   console.log('Phase 4 checks passed: public shell and seeded navigation, homepage sections, bilingual published content queries, broadcast schedules, search, and production exclusion of demo content.');
- }finally{await closeDb();}
+ }finally{await closeDb();if(originalNodeEnv===undefined)Reflect.deleteProperty(process.env,'NODE_ENV');else Reflect.set(process.env,'NODE_ENV',originalNodeEnv);}
 }
 main().catch(error=>{console.error(error);process.exitCode=1});
