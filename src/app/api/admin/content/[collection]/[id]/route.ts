@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ colle
   }
   if (input.publicationDate !== undefined && collection === 'publications') set('publication_date', input.publicationDate);
   if (input.fileUrl !== undefined && collection === 'publications') set('file_url', input.fileUrl);
-  if (input.featuredImageUrl !== undefined && collection === 'events') set('featured_image_url', input.featuredImageUrl);
+  if (input.featuredImageUrl !== undefined) set(collection === 'pages' ? 'hero_image_url' : 'featured_image_url', input.featuredImageUrl);
   if (input.isFeatured !== undefined && ['articles','events','publications'].includes(collection)) set('is_featured', input.isFeatured);
   if (!sets.length) return NextResponse.json({ error: 'The submitted fields do not apply to this content type.' }, { status: 400 });
   // Any edit after submission invalidates prior review/approval and unpublishes the public version.

@@ -66,6 +66,7 @@ export async function seedDatabase(db: DbAdapter): Promise<void> {
       ['menu_main_community','main',null,'TBC na Jamii','TBC and community','','','/community',5],
       ['menu_utility_faq','utility',null,'Maswali ya mara kwa mara','Frequently asked questions','','','/faq',0],
       ['menu_utility_contact','utility',null,'Wasiliana nasi','Contact us','','','/contact',1],
+      ['menu_utility_forms','utility',null,'Fomu za mtandaoni','Online forms','','','/forms',2],
       ['menu_footer_about','footer_about',null,'Kuhusu TBC','About TBC','','','/about',0],
       ['menu_footer_services','footer_services',null,'Huduma zetu','Our services','','','/services',0],
       ['menu_footer_publications','footer_resources',null,'Machapisho','Publications','','','/publications',0],
@@ -73,6 +74,7 @@ export async function seedDatabase(db: DbAdapter): Promise<void> {
       ['menu_footer_privacy','footer_legal',null,'Sera ya faragha','Privacy policy','','','/privacy',0],
       ['menu_footer_terms','footer_legal',null,'Vigezo na masharti','Terms and conditions','','','/terms',1],
       ['menu_footer_sitemap','footer_legal',null,'Ramani ya tovuti','Sitemap','','','/sitemap',2],
+      ['menu_footer_accessibility','footer_legal',null,'Upatikanaji','Accessibility','','','/accessibility',3],
     ] as const;
     for (const [id, location, parentId, labelSw, labelEn, descriptionSw, descriptionEn, url, sortOrder] of menu) {
       await tx.query(

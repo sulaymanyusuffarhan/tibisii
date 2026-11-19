@@ -30,12 +30,16 @@ export async function POST(req: NextRequest, context: { params: Promise<{ collec
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Choose a valid workflow status.' }, { status: 400 });
   const db = await getDb();
-  const current = await db.query<{ workflow_status: string; created_by: string | null; title_sw: string }>(
-    `SELECT workflow_status,created_by,title_sw FROM ${tables[collection].table} WHERE id=$1`, [id]
+  const current = await db.query<{ workflow_status: string; created_by: string | null; title_sw: string; featured_image_url?:string; hero_image_url?:string; file_url?:string; thumbnail_url?:string }>(
+    `SELECT * FROM ${tables[collection].table} WHERE id=$1`, [id]
   );
   if (!current.rows[0]) return NextResponse.json({ error: 'Content not found.' }, { status: 404 });
   const fromStatus = current.rows[0].workflow_status as WorkflowStatus;
   const toStatus = parsed.data.status;
+  if(toStatus==='published'||toStatus==='scheduled'){
+    const record=current.rows[0];const urls=[collection==='pages'?record.hero_image_url:collection==='publications'?record.file_url:record.featured_image_url,...(collection==='publications'?[record.thumbnail_url]:[])].filter((value):value is string=>Boolean(value));
+    for(const url of urls){const mediaId=url.split('/api/media/')[1]?.split(/[?#]/)[0];if(!mediaId)continue;const asset=await db.query<{id:string;media_type:string;is_public:boolean;is_deleted:boolean;alt_sw:string;alt_en:string}>('SELECT id,media_type,is_public,is_deleted,alt_sw,alt_en FROM media_assets WHERE id=$1',[mediaId]);const item=asset.rows[0];if(!item||item.is_deleted||!item.is_public)return NextResponse.json({error:'A linked media file is private or unavailable. Approve it in the Media Library before publishing.'},{status:400});if(item.media_type==='image'&&!item.alt_sw&&!item.alt_en)return NextResponse.json({error:'A linked public image needs accessible alternative text before publishing.'},{status:400})}
+  }
   if (['approved','rejected'].includes(toStatus) && current.rows[0].created_by === auth.id && auth.roleSlug !== 'super_admin') {
     await logAudit({ userId: auth.id, userEmail: auth.email, userRole: auth.roleSlug, action: 'security.self_approval_blocked', entityType: collection, entityId: id, summary: 'Blocked an attempt to approve or reject own content.' });
     return NextResponse.json({ error: 'For separation of duties, an author cannot approve or reject their own item.' }, { status: 403 });
