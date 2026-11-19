@@ -70,14 +70,21 @@ export function slugify(input: string): string {
 }
 
 export function getClientIp(req: NextRequest | Request): string {
-  const xff = req.headers.get('x-forwarded-for');
-  if (xff) {
-    const first = xff.split(',')[0]?.trim();
-    if (first) return first.slice(0, 64);
+  // Only trust forwarding headers when the app is reachable through a configured reverse proxy.
+  // Select from the right edge: a trusted proxy appends the address it observed, preventing a
+  // client-supplied leftmost X-Forwarded-For value from bypassing IP-based limits.
+  const proxyHops = Math.max(0, Math.min(8, Number.parseInt(process.env.TRUSTED_PROXY_HOPS || '0', 10) || 0));
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (proxyHops > 0 && forwarded) {
+    const entries = forwarded.split(',').map((value) => value.trim()).filter(Boolean);
+    const candidate = entries[Math.max(0, entries.length - proxyHops)];
+    if (candidate && /^[a-fA-F0-9:.]{2,64}$/.test(candidate)) return candidate;
   }
-  const realIp = req.headers.get('x-real-ip');
-  if (realIp) return realIp.trim().slice(0, 64);
-  return '127.0.0.1';
+  if (proxyHops > 0) {
+    const realIp = req.headers.get('x-real-ip')?.trim();
+    if (realIp && /^[a-fA-F0-9:.]{2,64}$/.test(realIp)) return realIp;
+  }
+  return 'unknown';
 }
 
 export function anonymizeVisitorSession(ip: string, userAgent: string): string {

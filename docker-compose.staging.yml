@@ -1,0 +1,69 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in the protected staging env file}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in the protected staging env file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the protected staging env file}
+    volumes:
+      - staging_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    networks: [staging]
+    security_opt: ["no-new-privileges:true"]
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?Set the HTTPS staging origin}
+      DATABASE_URL: ${STAGING_DATABASE_URL:?Set STAGING_DATABASE_URL with URL-encoded credentials}
+      DATABASE_SSL: "false"
+      AUTO_INIT_DB: "false"
+      SESSION_SECRET: ${SESSION_SECRET:?Generate a unique SESSION_SECRET}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?Generate a distinct BACKUP_ENCRYPTION_KEY}
+      COOKIE_SECURE: "true"
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+      UPLOAD_DIR: /app/storage/uploads
+      BACKUP_DIR: /app/storage/backups
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-90}
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-25}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ANALYTICS_RETENTION_DAYS: ${ANALYTICS_RETENTION_DAYS:-395}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      ENQUIRY_NOTIFICATION_EMAIL: ${ENQUIRY_NOTIFICATION_EMAIL:-}
+      MAIN_TBC_WEBSITE_URL: ${MAIN_TBC_WEBSITE_URL:-https://www.tbc.go.tz/}
+      EMREJESHO_PORTAL_URL: ${EMREJESHO_PORTAL_URL:-https://emrejesho.gov.go.tz/}
+      EMREJESHO_LINK_ENABLED: ${EMREJESHO_LINK_ENABLED:-false}
+    ports:
+      - "127.0.0.1:${STAGING_PORT:-3000}:3000"
+    volumes:
+      - staging_uploads:/app/storage/uploads
+      - staging_backups:/app/storage/backups
+    networks: [staging]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+
+networks:
+  staging:
+    driver: bridge
+
+volumes:
+  staging_pgdata:
+  staging_uploads:
+  staging_backups:

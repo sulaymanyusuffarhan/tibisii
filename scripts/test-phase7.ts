@@ -1,0 +1,29 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {NextRequest} from 'next/server';
+import {getDb,closeDb,runMigrations} from '../src/lib/db';
+import {seedDatabase} from '../src/lib/seed-data';
+import {createDatabaseBackup,readDatabaseBackup,restoreDatabaseBackup} from '../src/lib/backup';
+import {getClientIp} from '../src/lib/security';
+import {logger} from '../src/lib/logger';
+import {middleware} from '../src/middleware';
+import {POST as postAnalytics} from '../src/app/api/analytics/route';
+
+async function main(){
+ process.env.DATABASE_URL='pglite://memory://';process.env.AUTO_INIT_DB='false';process.env.TRUSTED_PROXY_HOPS='1';process.env.BACKUP_ENCRYPTION_KEY='phase-seven-test-secret-key-0123456789abcdef';
+ const backupDir='storage/backups/phase7-test';process.env.BACKUP_DIR=backupDir;const fixtureFile=path.resolve(process.env.UPLOAD_DIR||'./storage/uploads','files/phase7fixture.pdf');const db=await getDb();
+ try{
+  await runMigrations(db);await seedDatabase(db);
+  fs.mkdirSync(path.dirname(fixtureFile),{recursive:true});const mediaBytes=Buffer.from('%PDF-1.7 phase seven fixture');fs.writeFileSync(fixtureFile,mediaBytes);
+  await db.query(`INSERT INTO media_assets(id,filename,original_name,storage_path,public_url,mime_type,extension,file_size,media_type) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,['med_phase7fixture','phase7fixture.pdf','fixture.pdf','files/phase7fixture.pdf','/api/media/med_phase7fixture','application/pdf','pdf',mediaBytes.length,'document']);
+  const ipReq=new Request('https://portal.example/',{headers:{'x-forwarded-for':'198.51.100.99, 203.0.113.7'}});assert.equal(getClientIp(ipReq),'203.0.113.7','trust the rightmost proxy-supplied client address, not spoofed leftmost values');
+  const response=middleware(new NextRequest('https://portal.example/en/about'));const csp=response.headers.get('content-security-policy')||'';assert.match(csp,/script-src[^;]*nonce-/);assert.doesNotMatch(csp,/script-src[^;]*unsafe-inline/);assert.equal(response.headers.get('x-content-type-options'),'nosniff');assert.equal(response.headers.get('x-frame-options'),'DENY');assert.ok(response.headers.get('x-request-id'));const originalNodeEnv=process.env.NODE_ENV;Reflect.set(process.env,'NODE_ENV','production');const productionResponse=middleware(new NextRequest('https://portal.example/en/about',{headers:{'x-forwarded-proto':'https'}}));assert.match(productionResponse.headers.get('strict-transport-security')||'',/max-age=31536000/);if(originalNodeEnv===undefined)Reflect.deleteProperty(process.env,'NODE_ENV');else Reflect.set(process.env,'NODE_ENV',originalNodeEnv);
+  const logs:string[]=[];const original=console.log;console.log=(line)=>logs.push(String(line));try{logger.info('test.redaction',{email:'private@example.invalid',token:'not-for-logs',status:'ok'})}finally{console.log=original}assert.equal(logs.length,1);assert.doesNotMatch(logs[0],/private@example|not-for-logs/);assert.match(logs[0],/"status":"ok"/);
+  const eventReq=new NextRequest('https://portal.example/api/analytics',{method:'POST',headers:{origin:'https://portal.example',host:'portal.example','content-type':'application/json','x-forwarded-for':'203.0.113.9','user-agent':'phase7-test'},body:JSON.stringify({type:'page_view',path:'/en/about',language:'en'})});const eventResponse=await postAnalytics(eventReq);assert.equal(eventResponse.status,204);assert.equal((await db.query("SELECT id FROM analytics_events WHERE path='/en/about'")).rows.length,1);
+  const dntReq=new NextRequest('https://portal.example/api/analytics',{method:'POST',headers:{origin:'https://portal.example',host:'portal.example','content-type':'application/json','x-forwarded-for':'203.0.113.9',dnt:'1'},body:JSON.stringify({type:'page_view',path:'/en/contact',language:'en'})});assert.equal((await postAnalytics(dntReq)).status,204);assert.equal((await db.query("SELECT id FROM analytics_events WHERE path='/en/contact'")).rows.length,0);
+  const before=await db.query<{name_en:string}>('SELECT name_en FROM roles WHERE slug=$1',['super_admin']);assert.ok(before.rows[0]);const backup=await createDatabaseBackup('phase7-test',db);assert.equal(backup.encrypted,true);assert.match(backup.filename,/\.json\.enc$/);const snapshot=readDatabaseBackup(backup.filename);const originalKey=process.env.BACKUP_ENCRYPTION_KEY;process.env.BACKUP_ENCRYPTION_KEY='wrong-key-with-enough-length-0123456789abcdef';assert.throws(()=>readDatabaseBackup(backup.filename),/decryption or authentication failed/);process.env.BACKUP_ENCRYPTION_KEY=originalKey;const mediaArchivePath=path.join(`${backup.filePath}.media`,'files/phase7fixture.pdf.enc');const encryptedMedia=fs.readFileSync(mediaArchivePath);fs.writeFileSync(mediaArchivePath,Buffer.concat([encryptedMedia,Buffer.from('tamper')]));await assert.rejects(()=>restoreDatabaseBackup(snapshot,{customDb:db,uploadsBackupDir:`${backup.filePath}.media`}),/decryption\/authentication failed/);fs.writeFileSync(mediaArchivePath,encryptedMedia);await db.query("UPDATE roles SET name_en='CHANGED' WHERE slug='super_admin'");fs.unlinkSync(fixtureFile);const restored=await restoreDatabaseBackup(snapshot,{customDb:db,uploadsBackupDir:`${backup.filePath}.media`});assert.ok(restored.restoredRows>0);assert.equal(restored.restoredMediaFiles,1);assert.deepEqual(fs.readFileSync(fixtureFile),mediaBytes);const after=await db.query<{name_en:string}>('SELECT name_en FROM roles WHERE slug=$1',['super_admin']);assert.equal(after.rows[0].name_en,before.rows[0].name_en);
+  console.log('Phase 7 checks passed: nonce CSP/security headers, structured-log redaction, trusted-proxy address selection, privacy-respecting analytics, and encrypted backup integrity/restore.');
+ }finally{await closeDb();fs.rmSync(fixtureFile,{force:true});fs.rmSync(path.resolve(backupDir),{recursive:true,force:true});}
+}
+main().catch(error=>{console.error('Phase 7 test failed:',error);process.exitCode=1});

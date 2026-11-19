@@ -1,5 +1,6 @@
 import { getDb } from './db';
 import { anonymizeVisitorSession, createId } from './security';
+import { logger } from './logger';
 
 export async function logAudit(params: {
   userId?: string | null;
@@ -33,8 +34,9 @@ export async function logAudit(params: {
         (params.userAgent ?? '').slice(0, 240),
       ]
     );
-  } catch {
-    // Prevent secondary logging failure from crashing request
+  } catch (error) {
+    // Audit persistence failure must not hide the original request result, but remains observable.
+    logger.error('audit.write_failed', error, { action: params.action, entityType: params.entityType || 'unknown' });
   }
 }
 
@@ -89,15 +91,15 @@ export async function recordAnalyticsEvent(params: {
       [
         createId('ana'),
         params.eventType,
-        params.path.slice(0, 240),
-        params.entityType ?? '',
-        params.entityId ?? '',
-        (params.label ?? '').slice(0, 200),
+        params.path.split(/[?#]/, 1)[0].replace(/[\u0000-\u001f]/g, '').slice(0, 240),
+        (params.entityType ?? '').slice(0, 80),
+        (params.entityId ?? '').replace(/[\u0000-\u001f]/g, '').slice(0, 120),
+        (params.label ?? '').replace(/[\u0000-\u001f]/g, '').slice(0, 200),
         params.language === 'en' ? 'en' : 'sw',
         sessionHash,
       ]
     );
-  } catch {
-    // Non-blocking analytics
+  } catch (error) {
+    logger.warn('analytics.write_failed', { errorType: error instanceof Error ? error.name : 'UnknownError', eventType: params.eventType });
   }
 }
