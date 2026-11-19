@@ -1,4 +1,13 @@
 /* Shared institutional header, Apple-style system typography and supplied brand marks. */
+.login-brand-top img {
+  width: 118px;
+  height: 72px;
+  flex: none;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  object-fit: contain;
+}
 .admin-sidebar {
   overflow-x: hidden;
   overflow-y: auto;

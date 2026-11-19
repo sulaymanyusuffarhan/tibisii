@@ -20,7 +20,7 @@ export default function AdminLoginPage() {
   }
   return <div className="login-screen">
     <section className="login-brand-panel">
-      <div className="login-brand-top"><img src="/branding/tbc-logo.svg" alt="TBC logo"/><div><strong>TANZANIA BROADCASTING CORPORATION</strong><small>Corporate Communications & Public Relations</small></div></div>
+      <div className="login-brand-top"><img src="/branding/tbc-logo.webp" alt="TBC logo"/><div><strong>TANZANIA BROADCASTING CORPORATION</strong><small>Corporate Communications & Public Relations</small></div></div>
       <div className="login-message"><div className="eyebrow">INTERNAL ADMINISTRATION</div><h1>Good communication begins behind the scenes.</h1><p>Manage institutional stories, public information and the content that connects TBC with the nation.</p></div>
       <div className="login-foot">Jamhuri ya Muungano wa Tanzania<br/>TBC Corporate Communication Portal · Authorized personnel only</div>
     </section>
