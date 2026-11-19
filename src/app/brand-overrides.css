@@ -87,6 +87,12 @@
   object-fit: contain;
 }
 
+.mast-logo-link {
+  display: block;
+  flex: none;
+  line-height: 0;
+}
+
 .mast-brand {
   gap: 5px;
 }
