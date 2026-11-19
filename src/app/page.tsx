@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
+import { getActiveLang } from '@/lib/i18n';
 
-export default function HomePage() {
-  redirect('/admin/login');
+export default async function HomePage() {
+  redirect(`/${await getActiveLang()}`);
 }
